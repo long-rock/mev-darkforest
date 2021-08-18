@@ -1,6 +1,8 @@
 import { h } from "preact";
 import { useReducer } from "preact/hooks";
+import { providers, utils, Wallet } from "ethers";
 import type { LocationId } from "@darkforest_eth/types";
+import { FlashbotsBundleProvider } from "@flashbots/ethers-provider-bundle";
 
 // @ts-expect-error
 const pg = df.getProcgenUtils();
@@ -41,6 +43,39 @@ export function AppView() {
     }
   };
 
+  const prospectPlanets = async () => {
+    const provider = new providers.JsonRpcProvider({ url: "https://rpc.xdaichain.com/" }, 100);
+    const authSigner = Wallet.createRandom();
+    const flashbotsProvider = await FlashbotsBundleProvider.create(
+      provider,
+      authSigner,
+      "https://xdai-relay.nethermind.io/"
+    );
+    // @ts-expect-error
+    const privateKey: string = df.getPrivateKey();
+    const wallet = new Wallet(privateKey);
+    const nonce = await provider.getTransactionCount(wallet.address);
+    const transaction = {
+      to: wallet.address,
+      data: "0x",
+      nonce,
+      gasPrice: utils.parseUnits("2", "gwei"),
+      gasLimit: 21000,
+    };
+    const signedTransactions = await flashbotsProvider.signBundle([
+      {
+        signer: wallet,
+        transaction,
+      },
+    ]);
+    const targetBlock = (await provider.getBlockNumber()) + 2;
+    // simulation not supported yet
+    // const simulation = await flashbotsProvider.simulate(signedTransactions, targetBlock);
+    const bundleSubmission = await flashbotsProvider.sendRawBundle(signedTransactions, targetBlock);
+    const response = await bundleSubmission.wait();
+    console.log(response);
+  };
+
   return (
     <div>
       <p>Prospect {state.length} planets</p>
@@ -48,7 +83,6 @@ export function AppView() {
         {state.map((locationId: LocationId) => {
           // @ts-expect-error
           const planet = df.getPlanetWithId(locationId);
-          // @ts-expect-error
           const name = pg.getPlanetName(planet);
           const centerLocation = () => {
             // @ts-expect-error
@@ -63,7 +97,7 @@ export function AppView() {
       </div>
       <div>
         <button onClick={addPlanet}>Add planet</button>
-        <button>Prospect!</button>
+        <button onClick={prospectPlanets}>Prospect!</button>
       </div>
     </div>
   );
