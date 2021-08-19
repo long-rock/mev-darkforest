@@ -1,8 +1,10 @@
 import { h } from "preact";
 import { useReducer } from "preact/hooks";
 import { providers, utils, Wallet } from "ethers";
+import {} from "@darkforest_eth/constants";
 import type { LocationId } from "@darkforest_eth/types";
 import type { DarkForestCore } from "@darkforest_eth/contracts/typechain";
+import { NETWORK_ID } from "@darkforest_eth/contracts";
 import { FlashbotsBundleProvider, FlashbotsBundleResolution } from "@flashbots/ethers-provider-bundle";
 
 // @ts-expect-error
@@ -45,7 +47,7 @@ export function AppView({ contract }: { contract: DarkForestCore }) {
   };
 
   const prospectPlanets = async () => {
-    const provider = new providers.JsonRpcProvider({ url: "https://rpc.xdaichain.com/" }, 100);
+    const provider = new providers.JsonRpcProvider({ url: "https://rpc-df.xdaichain.com/" }, NETWORK_ID);
     const authSigner = Wallet.createRandom();
     const flashbotsProvider = await FlashbotsBundleProvider.create(
       provider,
@@ -54,22 +56,27 @@ export function AppView({ contract }: { contract: DarkForestCore }) {
     );
     // @ts-expect-error
     const privateKey: string = df.getPrivateKey();
-    const wallet = new Wallet(privateKey);
+    const wallet = new Wallet(privateKey, provider);
     const nonce = await provider.getTransactionCount(wallet.address);
     console.log(`Wallet: ${wallet.address}`);
-    const bundle = [];
+    //const bundle = [];
     for (let i = 0; i < state.length; i++) {
-      const unsigned = await contract.connect(wallet).populateTransaction.prospectPlanet("0x" + state[i]);
-      console.log("Unsigned tx", unsigned);
+      const tx = await contract.connect(wallet).populateTransaction.prospectPlanet("0x" + state[0]);
+      const gasLimit = await provider.estimateGas(tx);
       const transaction = {
-        to: unsigned.to,
-        data: unsigned.data,
+        to: contract.address,
+        data: tx.data,
+        chainId: NETWORK_ID,
         nonce,
-        gasPrice: utils.parseUnits("5", "gwei"),
-        gasLimit: 210000,
+        gasPrice: utils.parseUnits("2", "gwei"),
+        gasLimit,
       };
-      bundle.push({ signer: wallet, transaction });
+      const response = await wallet.sendTransaction(transaction);
+      const receipt = await response.wait();
+      console.log(receipt);
+      //bundle.push({ transaction, signer: wallet });
     }
+    /*
     const signedTransactions = await flashbotsProvider.signBundle(bundle);
     const targetBlock = (await provider.getBlockNumber()) + 3;
     // simulation not supported yet
@@ -78,6 +85,7 @@ export function AppView({ contract }: { contract: DarkForestCore }) {
     console.log(bundleSubmission);
     const response = await bundleSubmission.wait();
     console.log(`Response ${FlashbotsBundleResolution[response]}`);
+    */
   };
 
   return (
