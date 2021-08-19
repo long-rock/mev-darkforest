@@ -2,7 +2,8 @@ import { h } from "preact";
 import { useReducer } from "preact/hooks";
 import { providers, utils, Wallet } from "ethers";
 import type { LocationId } from "@darkforest_eth/types";
-import { FlashbotsBundleProvider } from "@flashbots/ethers-provider-bundle";
+import type { DarkForestCore } from "@darkforest_eth/contracts/typechain";
+import { FlashbotsBundleProvider, FlashbotsBundleResolution } from "@flashbots/ethers-provider-bundle";
 
 // @ts-expect-error
 const pg = df.getProcgenUtils();
@@ -32,7 +33,7 @@ function stateReducer(state: State, action: Action): State {
   }
 }
 
-export function AppView() {
+export function AppView({ contract }: { contract: DarkForestCore }) {
   const [state, dispatch] = useReducer(stateReducer, []);
 
   const addPlanet = () => {
@@ -55,25 +56,28 @@ export function AppView() {
     const privateKey: string = df.getPrivateKey();
     const wallet = new Wallet(privateKey);
     const nonce = await provider.getTransactionCount(wallet.address);
-    const transaction = {
-      to: wallet.address,
-      data: "0x",
-      nonce,
-      gasPrice: utils.parseUnits("2", "gwei"),
-      gasLimit: 21000,
-    };
-    const signedTransactions = await flashbotsProvider.signBundle([
-      {
-        signer: wallet,
-        transaction,
-      },
-    ]);
-    const targetBlock = (await provider.getBlockNumber()) + 2;
+    console.log(`Wallet: ${wallet.address}`);
+    const bundle = [];
+    for (let i = 0; i < state.length; i++) {
+      const unsigned = await contract.connect(wallet).populateTransaction.prospectPlanet("0x" + state[i]);
+      console.log("Unsigned tx", unsigned);
+      const transaction = {
+        to: unsigned.to,
+        data: unsigned.data,
+        nonce,
+        gasPrice: utils.parseUnits("5", "gwei"),
+        gasLimit: 210000,
+      };
+      bundle.push({ signer: wallet, transaction });
+    }
+    const signedTransactions = await flashbotsProvider.signBundle(bundle);
+    const targetBlock = (await provider.getBlockNumber()) + 3;
     // simulation not supported yet
     // const simulation = await flashbotsProvider.simulate(signedTransactions, targetBlock);
     const bundleSubmission = await flashbotsProvider.sendRawBundle(signedTransactions, targetBlock);
+    console.log(bundleSubmission);
     const response = await bundleSubmission.wait();
-    console.log(response);
+    console.log(`Response ${FlashbotsBundleResolution[response]}`);
   };
 
   return (

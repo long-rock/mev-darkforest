@@ -7,6 +7,7 @@
     "serve": "df-plugin-dev-server --glob plugins/*.tsx --preact"
   },
   "devDependencies": {
+    "@darkforest_eth/contracts": "^6.5.5",
     "@darkforest_eth/types": "^6.5.4",
     "@flashbots/ethers-provider-bundle": "^0.4.1",
     "@projectsophon/df-plugin-dev-server": "^1.4.0",
