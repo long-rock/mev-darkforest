@@ -59,33 +59,46 @@ export function AppView({ contract }: { contract: DarkForestCore }) {
     const wallet = new Wallet(privateKey, provider);
     const nonce = await provider.getTransactionCount(wallet.address);
     console.log(`Wallet: ${wallet.address}`);
-    //const bundle = [];
+    const bundle = [];
     for (let i = 0; i < state.length; i++) {
-      const tx = await contract.connect(wallet).populateTransaction.prospectPlanet("0x" + state[0]);
+      const tx = await contract.connect(wallet).populateTransaction.prospectPlanet("0x" + state[i]);
       const gasLimit = await provider.estimateGas(tx);
       const transaction = {
         to: contract.address,
         data: tx.data,
         chainId: NETWORK_ID,
-        nonce,
-        gasPrice: utils.parseUnits("2", "gwei"),
+        nonce: nonce + i,
+        gasPrice: utils.parseUnits("4", "gwei"),
         gasLimit,
       };
-      const response = await wallet.sendTransaction(transaction);
-      const receipt = await response.wait();
-      console.log(receipt);
-      //bundle.push({ transaction, signer: wallet });
+      console.log(`Tx ${i}`, transaction);
+      bundle.push({ transaction, signer: wallet });
     }
-    /*
     const signedTransactions = await flashbotsProvider.signBundle(bundle);
-    const targetBlock = (await provider.getBlockNumber()) + 3;
-    // simulation not supported yet
-    // const simulation = await flashbotsProvider.simulate(signedTransactions, targetBlock);
-    const bundleSubmission = await flashbotsProvider.sendRawBundle(signedTransactions, targetBlock);
-    console.log(bundleSubmission);
-    const response = await bundleSubmission.wait();
-    console.log(`Response ${FlashbotsBundleResolution[response]}`);
-    */
+    const currentBlock = await provider.getBlockNumber();
+    const submissions = [];
+    const minBlock = 2;
+    const numBlocks = 20;
+    for (let i = minBlock; i < minBlock + numBlocks; i++) {
+      const bundleSubmission = await flashbotsProvider.sendRawBundle(signedTransactions, currentBlock + i);
+      console.log(`Submitted bundle with target ${currentBlock + i} `, bundleSubmission);
+      submissions.push(bundleSubmission);
+    }
+
+    for (let i = 0; i < submissions.length; i++) {
+      const sub = submissions[i];
+      const response = await sub.wait();
+      console.log(`Response ${FlashbotsBundleResolution[response]}`);
+      if (response === FlashbotsBundleResolution.BundleIncluded) {
+        break;
+      }
+    }
+
+    state.forEach((locationId) => {
+      console.log(`Refresh planet ${locationId}`);
+      // @ts-expect-error
+      df.softRefreshPlanet(locationId);
+    });
   };
 
   return (
