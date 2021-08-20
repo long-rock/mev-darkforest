@@ -1,16 +1,6 @@
-import { h, render } from "preact";
-import { providers, Wallet } from "ethers";
-import { FlashbotsBundleProvider } from "@flashbots/ethers-provider-bundle";
-import { CORE_CONTRACT_ADDRESS } from "@darkforest_eth/contracts";
-import type { DarkForestCore } from "@darkforest_eth/contracts/typechain";
-import CORE_CONTRACT_ABI from "@darkforest_eth/contracts/abis/DarkForestCore.json";
+import { h, JSX, render } from "preact";
 
-import { AppView } from "./views/AppView";
-
-async function getCoreContract(): Promise<DarkForestCore> {
-  // @ts-expect-error
-  return df.loadContract(CORE_CONTRACT_ADDRESS, CORE_CONTRACT_ABI) as Promise<DarkForestCore>;
-}
+import { ProspectView } from "./views/ProspectView";
 
 export default class ProspectPlugin {
   container: HTMLDivElement | null;
@@ -19,15 +9,15 @@ export default class ProspectPlugin {
     this.container = null;
   }
 
-  async render(container: HTMLDivElement) {
+  async render(container: HTMLDivElement): Promise<void> {
     this.container = container;
     container.style.width = "500px";
-    const contract = await getCoreContract();
-    console.log(contract);
-    render(<AppView contract={contract} />, container);
+    render(<ProspectView />, container);
   }
 
-  destroy() {
-    render(null, this.container);
+  destroy(): void {
+    if (this.container) {
+      render(null, this.container);
+    }
   }
 }

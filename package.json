@@ -6,11 +6,16 @@
   "scripts": {
     "serve": "df-plugin-dev-server --glob plugins/*.tsx --preact"
   },
-  "devDependencies": {
+  "dependencies": {
     "@darkforest_eth/constants": "^6.5.5",
     "@darkforest_eth/contracts": "^6.5.5",
     "@darkforest_eth/types": "^6.5.4",
     "@flashbots/ethers-provider-bundle": "^0.4.1",
+    "ethers": "^5.4.4",
+    "immutable": "^4.0.0-rc.14",
+    "preact": "^10.5.14"
+  },
+  "devDependencies": {
     "@projectsophon/df-plugin-dev-server": "^1.4.0",
     "@projectsophon/eslint-config": "0.0.2",
     "@projectsophon/prettier-config": "0.0.0",
@@ -19,8 +24,6 @@
     "@typescript-eslint/parser": "^4.29.2",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
-    "ethers": "^5.4.4",
-    "preact": "^10.5.14",
     "prettier": "^2.3.2",
     "typescript": "^4.3.5"
   },
