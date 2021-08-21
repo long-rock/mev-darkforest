@@ -194,13 +194,13 @@ export function useFlashbotsBundle({ onComplete, blocks = 20 }: FlashbotsArgs = 
     setBundles(newBundles);
 
     // check status of submissions
-    let immutableBundles = List.of(...newBundles);
+    let immutableBundles: List<FlashbotsResult> = List.of(...newBundles);
     let included = false;
     for (let i = 0; i < blocks; i++) {
       const localStatus = immutableBundles.get(i);
       console.log(`Checking status ${i}`, localStatus);
       if (included) {
-        if (localStatus) {
+        if (localStatus && localStatus.status != "submitting") {
           const newLocalStatus: FlashbotsResult = {
             status: "skip",
             targetBlock: localStatus.targetBlock,
@@ -214,6 +214,11 @@ export function useFlashbotsBundle({ onComplete, blocks = 20 }: FlashbotsArgs = 
       } else {
         if (localStatus?.status === "submitted") {
           try {
+            // TODO(fra): how to handle this error?
+            if ("error" in localStatus.transaction) {
+              continue;
+            }
+
             const response = await localStatus.transaction.wait();
             console.log(`Response ${FlashbotsBundleResolution[response]} ${localStatus.targetBlock}`);
             let newLocalStatus: FlashbotsResult | undefined;
